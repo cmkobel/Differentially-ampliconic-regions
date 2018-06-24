@@ -4,7 +4,7 @@
 
 
 
-# Overview on the pipeline so far:
+### Overview on the pipeline so far:
 --
 
 The ten PRJEB1357 genomes are used to increase the size of the previous projectA
