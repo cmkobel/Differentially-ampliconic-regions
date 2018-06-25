@@ -7,7 +7,7 @@
 ### Overview on the pipeline so far:
 --
 
-The ten PRJEB1357 genomes are used to increase the size of the previous projectA
+The ten PRJEB1357 genomes are used to increase the size of the previous project
 https://www.ncbi.nlm.nih.gov/sra/?term=PRJEB1357
 The genomes were downloaded with wget from the ncbi ftp 
 
