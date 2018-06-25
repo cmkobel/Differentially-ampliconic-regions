@@ -1,0 +1,10 @@
+[bwa_index] Pack FASTA... 0.01 sec
+[bwa_index] Construct BWT for the packed sequence...
+[BWTIncCreate] textLength=4570190, availableWord=5806096
+[bwa_index] 0.67 seconds elapse.
+[bwa_index] Update BWT... 0.02 sec
+[bwa_index] Pack forward-only FASTA... 0.01 sec
+[bwa_index] Construct SA from BWT and Occ... 0.19 sec
+[main] Version: 0.7.5a-r405
+[main] CMD: bwa index -p ac_chimp_x -a bwtsw ac_chimp_x.fa
+[main] Real time: 0.979 sec; CPU: 0.906 sec

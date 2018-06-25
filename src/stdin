@@ -1,0 +1,1 @@
+wgwf is aliased to `while sleep 20; do clear; gwf -b slurm status; done'

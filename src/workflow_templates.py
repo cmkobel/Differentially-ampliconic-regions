@@ -1,32 +1,44 @@
-# Author: adapted from Skov/Lucotte by CMK.
-# common for X and Y chromosomes.
-# The templates are ordered by use in the protocol.
+# Author: CMK
+
 
 import os
 
 # 0: initialize
-def initialize(title, description): # lav den her funktion i python i stedet for.
+def initialize(batchdir, title, description):
+    '''
+    make a dir for each individual and possibly paste the description of it
+    '''
     inputs = []
-    outputs = [] # Is a directory an output? Update: no.
+    outputs = [] # dirs are not outputs, so no need to fill anything here
     options = {'cores': 1, 'memory': 100, 'walltime': '00:01:00'}
     spec = '''
-        mkdir {title}
-        cd {title}
-        echo $(date)'\n{description}\n' >> batch_description.txt'''.format(
+        mkdir {batchdir}{title}
+        cd {batchdir}{title}
+        echo $(date)'\n{description}\n' > batch_parameters.txt'''.format(
+            batchdir = batchdir,
             title = title,
             description = description)
-    return inputs, outputs, options, spec    
+    return inputs, outputs, options, spec   
 
 
 # 1: Index the ref. genome
-def index_genome(title, refgenome):
-    refgenome_stem = os.path.splitext(refgenome)[0]
+def index_genome(wd, refgenome):
+    #refgenome_stem = os.path.splitext(refgenome)[0]
+    refgenome_stem = os.path.splitext(refgenome)[0].split('/')[-1]
+    print(refgenome_stem) #debug
     
     inputs = [refgenome]
-    outputs = [title+'/'+refgenome_stem+extension for extension in ['.amb', '.ann', '.pac', '.sa', '.bwt', '.dict', '.fai']]
+    outputs = [wd + '/' + refgenome_stem + extension for extension in ['.amb', '.ann', '.pac', '.sa', '.bwt', '.dict', '.fai']]
     options = {'cores': 1, 'memory': 2000, 'walltime': '00:25:00'}
     #options = {}
-    spec =  """sleep 1;cd {title}; cp ../{refgenome} .; source /com/extra/bwa/0.7.5a/load.sh; bwa index -p {refgenome_stem} -a bwtsw {refgenome}""".format(title=title, refgenome_stem=refgenome_stem, refgenome=refgenome)
+    spec =  '''sleep 1;
+        cd {wd}; cp ../{refgenome} .;
+        source /com/extra/bwa/0.7.5a/load.sh;
+        bwa index -p {refgenome_stem} -a bwtsw {refgenome_stem}.fa
+        '''.format(
+        wd = wd,
+        refgenome_stem = refgenome_stem,
+        refgenome = refgenome)
     #spec =  """mkdir {title}; cd {title}; touch test; """.format(title=title)
 
     return inputs, outputs, options, spec
@@ -34,7 +46,7 @@ def index_genome(title, refgenome):
 
 
 #2
-def bwa_map_pe(title, refgenome, read1, read2, individual):
+def bwa_map_pe(wd, refgenome, read1, read2, individual):
     '''
     Maps the hap. genomes to the reference
 
@@ -45,12 +57,12 @@ def bwa_map_pe(title, refgenome, read1, read2, individual):
     sambamba flagstat : gives a flag stat to BAM files
     sambamba view -F : filter the bam files
     '''
-    refgenome_stem = os.path.splitext(refgenome)[0]
+    refgenome_stem = os.path.splitext(refgenome)[0].split('/')[-1]
     inputs = [read1,
               read2,
               refgenome]
 
-    for extension in ['.amb', '.ann', '.pac']: inputs.append(title+'/'+refgenome_stem+extension) # kan godt flattenes pænere
+    for extension in ['.amb', '.ann', '.pac']: inputs.append(wd + '/' + refgenome_stem + extension) # kan godt flattenes pænere
     # ooutputs = [
     #   title+'/'+individual+'_sorted.bam',
     #   title+'/'+individual+'_sorted.bam.bai',
@@ -60,7 +72,7 @@ def bwa_map_pe(title, refgenome, read1, read2, individual):
     #   title+'/'+individual+'_sort_dedup.bam.flagstat',
     #   title+'/'+individual+'.COMPLETED']
 
-    outputs = [title+'/'+individual+extension for extension in [
+    outputs = [wd + '/' + individual+extension for extension in [
         '_sorted.bam',
         '_sorted.bam.bai',
         '_unsorted.bam',
@@ -73,7 +85,7 @@ def bwa_map_pe(title, refgenome, read1, read2, individual):
     spec = '''
         source /com/extra/bwa/0.7.5a/load.sh
         source /com/extra/sambamba/0.5.1/load.sh
-        cd {title}
+        cd {wd}
         echo hvade
         bwa mem -M -t 16 -a {refgenome_stem} {R1} {R2} \
         | sambamba view -f bam -F "proper_pair" -S -t 8 /dev/stdin \
@@ -90,7 +102,8 @@ def bwa_map_pe(title, refgenome, read1, read2, individual):
         #rm -f {ind}_sorted.bam.bai
         sambamba flagstat -t 16 {ind}_sort_dedup.bam > {ind}_sort_dedup.bam.flagstat
         sleep 10'''.format(
-            title = title, 
+            #title = title,
+            wd = wd, 
             refgenome = refgenome,
             refgenome_stem = refgenome_stem,
             R1 = read1,
@@ -101,6 +114,7 @@ def bwa_map_pe(title, refgenome, read1, read2, individual):
 
 
 # 3
+# Jeg tror ikke dette trin er nødvendigt, da der kun er en enkelt 
 def merge_bams_new(title, individual, infiles, outfile, input):
     inputs = [title+'/'+i for i in infiles]
     outputs = [title+'/'+individual+'/'+outfile] # must be a list
