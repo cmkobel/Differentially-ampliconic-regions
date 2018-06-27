@@ -37,26 +37,28 @@ def get_file_tree(path):
                 #print(pretty_print_dict(dict))
                 return dict
 
+
+# Flip switches
 process = {}
-process[0] = False      #init
-process[1] = False      #idx ac
-process[2] = True
+process[0] = False      # init
+process[1] = False      # idx ac
+process[2] = True       # bwa_map_pe
 process[3] = False
 process[4] = False
 process[5] = False
 process[6] = False
 
 
-
-batches = [{'title': 'batch_1_test',
+# batches er skrevet som ligger de i roden. Korrektion sker ved kaldet, da templates også er skrevet som lå de i roden
+batches = [{'title': 'batch_2_test',
     'chromosome': 'x',
     'description': 'testing testing',
     
-    'rel_batchdir': '../batches/',
-    'rel_ac': '../data/ac/ac_chimp_x.fa', # formerly rel_reference
+    'batch_dir': 'batches/',
+    'ac_path': 'data/ac/ac_chimp_x.fa', # formerly rel_reference
     
-    'rel_ind_list': '../data/individuals.txt',
-    'rel_fastq_dir': '../data/fastq/',
+    'ind_list_path': 'data/individuals.txt',
+    'fastq_dir': 'data/fastq/',
     }]
 
 
@@ -65,28 +67,28 @@ batches = [{'title': 'batch_1_test',
 for b in batches:
     # initialize
     if process[0]:
-        gwf.target_from_template(b['title'] + '_0_init', initialize(b['rel_batchdir'], b['title'], json.dumps(b, sort_keys=False, indent=4)))
+        gwf.target_from_template(b['title'] + '_0_init', initialize('../' + b['batch_dir'], b['title'], json.dumps(b, sort_keys=False, indent=4)))
     
 
     # shorthand for working dir for the rest of this loop.
-    b['wd'] = b['rel_batchdir'] + b['title'] + '/'
-    # ../batches/batch_1_test
+    b['batch_wd'] = b['batch_dir'] + b['title'] + '/'
+    # batches/batch_n_test_something
     
     #index acs    
     if process[1]:
-        gwf.target_from_template(b['title'] + '_1_idx_ac', index_genome(b['wd'], b['rel_ac'])) # I'm not sure if title is even used..
+        gwf.target_from_template(b['title'] + '_1_idx_ac', index_genome('../' + b['batch_wd'], '../' + b['ac_path'])) # I'm not sure if title is even used..
 
-    individuals_tree = get_file_tree(b['rel_ind_list'])
+    individuals_tree = get_file_tree('../' + b['ind_list_path'])
     for individual, fastq_files in individuals_tree.items():
         #print(individual, fastq_files[0], fastq_files[1])
 
         if process[2]:
-            gwf.target_from_template(b['title'] + '_2_map_' + individual, bwa_map_pe(
-                b['wd'],
-                b['rel_ac'],
-                b['rel_fastq_dir'] + fastq_files[0],
-                b['rel_fastq_dir'] + fastq_files[1],
-                individual))
+            gwf.target_from_template(b['title'] + '_2_map_' + individual,
+                bwa_map_pe('../' + b['batch_wd'],
+                    '../' + b['ac_path'],
+                    '../' + b['fastq_dir'] + fastq_files[0],
+                    '../' + b['fastq_dir'] + fastq_files[1],
+                    individual))
 
 
 

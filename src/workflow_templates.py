@@ -46,7 +46,7 @@ def index_genome(wd, refgenome):
 
 
 #2
-def bwa_map_pe(wd, refgenome, read1, read2, individual):
+def bwa_map_pe(batch_wd, refgenome, read1, read2, individual):
     '''
     Maps the hap. genomes to the reference
 
@@ -58,11 +58,12 @@ def bwa_map_pe(wd, refgenome, read1, read2, individual):
     sambamba view -F : filter the bam files
     '''
     refgenome_stem = os.path.splitext(refgenome)[0].split('/')[-1]
+
     inputs = [read1,
               read2,
               refgenome]
 
-    for extension in ['.amb', '.ann', '.pac']: inputs.append(wd + '/' + refgenome_stem + extension) # kan godt flattenes pænere
+    for extension in ['.amb', '.ann', '.pac']: inputs.append(batch_wd + '/' + refgenome_stem + extension) # kan godt flattenes pænere
     # ooutputs = [
     #   title+'/'+individual+'_sorted.bam',
     #   title+'/'+individual+'_sorted.bam.bai',
@@ -72,7 +73,7 @@ def bwa_map_pe(wd, refgenome, read1, read2, individual):
     #   title+'/'+individual+'_sort_dedup.bam.flagstat',
     #   title+'/'+individual+'.COMPLETED']
 
-    outputs = [wd + '/' + individual+extension for extension in [
+    outputs = [batch_wd + '/' + individual+extension for extension in [
         '_sorted.bam',
         '_sorted.bam.bai',
         '_unsorted.bam',
@@ -81,34 +82,43 @@ def bwa_map_pe(wd, refgenome, read1, read2, individual):
         '_sort_dedup.bam.flagstat',
         '.COMPLETED']]
 
-    options = {'cores': 16, 'memory': 24000, 'walltime': '24:00:00'}
+    options = {'cores': 4, 'memory': 2000, 'walltime': '00:01:00'}
+    #options = {'cores': 16, 'memory': 24000, 'walltime': '24:00:00'}
+
     spec = '''
         source /com/extra/bwa/0.7.5a/load.sh
         source /com/extra/sambamba/0.5.1/load.sh
-        cd {wd}
-        echo hvade
-        bwa mem -M -t 16 -a {refgenome_stem} {R1} {R2} \
+        cd {batch_wd}
+        mkdir {individual}
+        #cd {individual}
+
+        echo ../{read1}
+        echo ../{refgenome}
+        echo {refgenome_stem}
+
+
+        bwa mem -M -t 16 -a {refgenome_stem} ../{read1} ../{read2} \
         | sambamba view -f bam -F "proper_pair" -S -t 8 /dev/stdin \
-        | sambamba view -f bam -T {refgenome} /dev/stdin > {ind}_unsorted.bam
+        | sambamba view -f bam -T {refgenome_stem}.fa /dev/stdin > {individual}/{individual}_unsorted.bam
           
-        sambamba sort -t 16 -m 24GB --out={ind}_sorted.bam --tmpdir=/scratch/$GWF_JOBID/ {ind}_unsorted.bam
-        sleep 10
+        # sambamba sort -t 16 -m 24GB --out={individual}_sorted.bam --tmpdir=/scratch/$GWF_JOBID/ {individual}_unsorted.bam
+        # sleep 10
 
-        #rm -f {ind}_unsorted.bam
-        sambamba markdup -t 16 {ind}_sorted.bam --tmpdir=/scratch/$GWF_JOBID/ {ind}_sort_dedup.bam
-        sleep 10
+        #rm -f {individual}_unsorted.bam
+        # sambamba markdup -t 16 {individual}_sorted.bam --tmpdir=/scratch/$GWF_JOBID/ {individual}_sort_dedup.bam
+        # sleep 10
 
-        #rm -f {ind}_sorted.bam
-        #rm -f {ind}_sorted.bam.bai
-        sambamba flagstat -t 16 {ind}_sort_dedup.bam > {ind}_sort_dedup.bam.flagstat
+        #rm -f {individual}_sorted.bam
+        #rm -f {individual}_sorted.bam.bai
+        # sambamba flagstat -t 16 {individual}_sort_dedup.bam > {individual}_sort_dedup.bam.flagstat
         sleep 10'''.format(
             #title = title,
-            wd = wd, 
+            batch_wd = batch_wd, 
             refgenome = refgenome,
             refgenome_stem = refgenome_stem,
-            R1 = read1,
-            R2 = read2,
-            ind = individual)
+            read1 = read1,
+            read2 = read2,
+            individual = individual)
 
     return inputs, outputs, options, spec
 
@@ -183,9 +193,9 @@ def get_coverage(title, individual):
 
 # 6:
 def get_cnv(title, individual, chrom):
-    inputs = [title+'/'+individual+'/'+individual+'_cov.txt']
+    inputs = [title + '/' + individual + '/' + individual + '_cov.txt']
     #ooutputs = [inputs[0]+'_pd_median.txt']
-    outputs = [title+'/cn_medians/'+chrom+'_'+individual+'_cn_median.csv']
+    outputs = [title + '/cn_medians/' + chrom + '_' + individual + '_cn_median.csv']
     options = {'cores': 4, 'memory': 64000, 'walltime': '04:00:00'}
     spec = '''
     if [ ! -d {dir} ]; then mkdir {dir}; fi
