@@ -38,9 +38,9 @@ def get_file_tree(path):
                 return dict
 
 process = {}
-process[0] = True      #init
+process[0] = False      #init
 process[1] = False      #idx ac
-process[2] = False
+process[2] = True
 process[3] = False
 process[4] = False
 process[5] = False
